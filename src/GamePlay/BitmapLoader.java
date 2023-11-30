@@ -1,4 +1,4 @@
-package fish;
+package GamePlay;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -6,11 +6,6 @@ import java.awt.image.DataBufferInt;
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Windows bitmap file loader.
- * @author Abdul Bezrati
- * @author Pepijn Van Eeckhoudt
- */
 public class BitmapLoader {
     public static BufferedImage loadBitmap(String file) throws IOException {
         BufferedImage image;

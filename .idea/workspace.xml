@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="07529f7f-e944-446a-95d6-c26b2e255563" name="Changes" comment="" />
+    <list default="true" id="07529f7f-e944-446a-95d6-c26b2e255563" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/lib64.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/River Raid.iml" beforeDir="false" afterPath="$PROJECT_DIR$/River Raid.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/AnimListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/AnimListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/BitmapLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/BitmapLoader.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/ResourceRetriever.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/ResourceRetriever.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/RiverRaid.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/RiverRaid.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/RiverRaidListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/RiverRaidListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/GamePlay/TextureReader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GamePlay/TextureReader.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -10,9 +21,12 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="2YuITmfz0GZoHgker7nEua81Saq" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -25,9 +39,34 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
     "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/ahmed/Downloads/CS304-2023/JOGLwin/lib64",
+    "project.structure.last.edited": "Libraries",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration name="RiverRaid" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="GamePlay.RiverRaid" />
+      <module name="River Raid" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="GamePlay.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.RiverRaid" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -37,7 +76,11 @@
       <option name="presentableId" value="Default" />
       <updated>1701369058854</updated>
       <workItem from="1701369059683" duration="11000" />
+      <workItem from="1701386704870" duration="183000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
 </project>
