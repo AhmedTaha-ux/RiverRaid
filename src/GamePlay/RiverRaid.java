@@ -8,21 +8,19 @@ import javax.swing.*;
 import java.awt.*;
 
 public class RiverRaid extends JFrame {
-    private Animator animator;
-    private GLCanvas glcanvas;
-    private RiverRaidListener listener = new RiverRaidListener();
 
     public static void main(String[] args) {
         new RiverRaid();
     }
 
     public RiverRaid() {
-        glcanvas = new GLCanvas();
+        GLCanvas glcanvas = new GLCanvas();
+        RiverRaidListener listener = new RiverRaidListener();
         glcanvas.addGLEventListener(listener);
         glcanvas.addKeyListener(listener);
         glcanvas.addMouseMotionListener(listener);
         add(glcanvas, BorderLayout.CENTER);
-        animator = new FPSAnimator(10);
+        Animator animator = new FPSAnimator(35);
         animator.add(glcanvas);
         animator.start();
 
