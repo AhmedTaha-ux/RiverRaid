@@ -2,13 +2,13 @@ package GamePlay;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GLAutoDrawable;
-import javax.media.opengl.GLEventListener;
 import javax.media.opengl.glu.GLU;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.BitSet;
 
 public class RiverRaidListener extends AnimListener implements KeyListener, MouseMotionListener {
@@ -18,15 +18,21 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
 
-    int idx,timer,bulletIdx;
-    private int [] bulletX = new int [10];
-    private int [] bulletY = new int [10];
+    int idx, timer, bulletIndex;
+    private long lastFireTime = 0;
+    private final long fireDelay = 500;
+    private int[] bulletX = new int[10];
+    private int[] bulletY = new int[10];
     private int planeX = 450;
     private int planeY = 50;
     BitSet keyBits = new BitSet(256);
-    String textureNames[] = {"Plane","Fire2","Bullet","BG"};
-    TextureReader.Texture texture[] = new TextureReader.Texture[textureNames.length];
-    int textures[] = new int[textureNames.length];
+    String[] textureNames = {"Plane", "Fire2", "Bullet", "BG"};
+    TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
+    int[] textures = new int[textureNames.length];
+
+    ArrayList<Bullet> bullets = new ArrayList<>();
+
+
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
         gl = glAutoDrawable.getGL();
@@ -50,27 +56,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         texture[i].getPixels() // Imagedata
                 );
             } catch (IOException e) {
-                System.out.println(e);
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
     }
+
     @Override
     public void display(GLAutoDrawable glAutoDrawable) {
         gl = glAutoDrawable.getGL();
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
         DrawBackground();
-        DrawObject(planeX,planeY,1.0,0,idx);
-        if(idx == 1){
+        DrawObject(planeX, planeY, 1.0, 0, idx);
+        if (idx == 1) {
             timer++;
-            if(timer > 10){
+            if (timer > 10) {
                 idx = 0;
                 timer = 0;
                 planeX = 450;
                 planeY = 50;
             }
         }
+        Fire();
     }
 
     @Override
@@ -81,6 +88,16 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     @Override
     public void displayChanged(GLAutoDrawable glAutoDrawable, boolean b, boolean b1) {
 
+    }
+
+    public void Fire() {
+        for (Bullet bullet : bullets) {
+            if (bullet.isFired) {
+                bullet.y += 4;
+                // TODO: fix bullet scale so it looks better
+                DrawObject(bullet.x, bullet.y + 35, 0.4f, 0, 2);
+            }
+        }
     }
 
     public void DrawBackground() {
@@ -109,7 +126,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
 
         gl.glPushMatrix();
         gl.glTranslated(x / (maxWidth / 2.0) - 0.9, y / (maxHeight / 2.0) - 0.9, 0);
-        gl.glScaled(0.1 * scale,0.1 * scale, 1);
+        gl.glScaled(0.1 * scale, 0.1 * scale, 1);
         gl.glRotated(degree, 0, 0, 1);
         gl.glBegin(GL.GL_QUADS);
         // Front Face
@@ -133,27 +150,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
 
     @Override
     public void keyPressed(KeyEvent e) {
+        // TODO: fix on double key pressed at the same time :)
+        long currentTime = System.currentTimeMillis();
+
         keyBits.set(e.getKeyCode());
-        if(keyBits.get(KeyEvent.VK_RIGHT) && idx != 1){
-            if(planeX <= 730){
+        if (keyBits.get(KeyEvent.VK_RIGHT) && idx != 1) {
+            if (planeX <= 730) {
                 planeX += 10;
-            }else{
+            } else {
                 idx = 1;
             }
-            System.out.println("here");
         }
-        if(keyBits.get(KeyEvent.VK_LEFT) && idx != 1){
-            if(planeX >= 175){
+        if (keyBits.get(KeyEvent.VK_LEFT) && idx != 1) {
+            if (planeX >= 175) {
                 planeX -= 10;
-            }else{
+            } else {
                 idx = 1;
             }
         }
-//        if(keyBits.get(KeyEvent.VK_SPACE) && idx != 1){
-//            bulletX[bulletIdx] = planeX;
-//            bulletY[bulletIdx] = planeY;
-//            bulletIdx++;
-//        }
+        if (keyBits.get(KeyEvent.VK_SPACE) && idx != 1 && (currentTime - lastFireTime >= fireDelay)) {
+            bullets.add(new Bullet(planeX, planeY));
+            lastFireTime = currentTime;
+        }
     }
 
     @Override
