@@ -6,6 +6,7 @@ import com.sun.opengl.util.FPSAnimator;
 import javax.media.opengl.GLCanvas;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseMotionListener;
 
 public class RiverRaid extends JFrame {
 
@@ -18,11 +19,13 @@ public class RiverRaid extends JFrame {
         RiverRaidListener listener = new RiverRaidListener();
         glcanvas.addGLEventListener(listener);
         glcanvas.addKeyListener(listener);
-        glcanvas.addMouseMotionListener(listener);
+        
         add(glcanvas, BorderLayout.CENTER);
         Animator animator = new FPSAnimator(35);
         animator.add(glcanvas);
         animator.start();
+        glcanvas.addMouseListener(listener);
+        listener.setGLCanvas(glcanvas);
 
         setTitle("River Raid Application");
         setSize(1000, 700);

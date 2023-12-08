@@ -9,14 +9,23 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import javax.media.opengl.GLCanvas;
+import javax.swing.Timer;
 
-public class RiverRaidListener extends AnimListener implements KeyListener, MouseMotionListener {
+public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener {
 
     GL gl;
+    private Timer gameTimer;
+    private int elapsedMinutes, elapsedSeconds;
+    
+    int xPosition = 90;
+    int yPosition = 90;
+    boolean player1 = false,home = true, HowToPlay=false;
 
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
@@ -26,13 +35,13 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     private final long fireDelay = 500;
 
     Entity hero = new Entity();
-
+    
     Entity [] enemy = new Entity[5];
 
     BitSet keyBits = new BitSet(256);
     String[] textureNames = {"Plane", "Fire2", "Bullet","Ship","Helicopter","Fire",
-            "Pause", "Score", "BG",
-    };
+            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"};
+    
     int[] enemiesIndex = {3, 4};
     TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
     int[] textures = new int[textureNames.length];
@@ -40,8 +49,11 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     TextRenderer ren = new TextRenderer(new Font("sanaSerif", Font.BOLD, 10));
 
     ArrayList<Bullet> bullets = new ArrayList<>();
+    private GLCanvas glc;
 
-
+  public void setGLCanvas(GLCanvas glc) {
+        this.glc = glc;
+    }
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
         gl = glAutoDrawable.getGL();
@@ -69,6 +81,12 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
             }
         }
         CreateEnemy();
+        
+        gameTimer = new Timer(1000, e -> {
+        updateTime();
+        glc.repaint();
+        });
+        gameTimer.start();
     }
 
     @Override
@@ -76,7 +94,16 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         gl = glAutoDrawable.getGL();
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
-        DrawBackground();
+        
+        if (home) {
+            DrawBackground(gl, 9);
+        }
+        if (HowToPlay) {
+            DrawBackground(gl, 11);
+        }
+          if (player1) {
+           DrawBackground(gl, 8);
+            
         DrawObject(hero.x, hero.y, 1.0, 0, hero.idx);
         DrawEnemy();
         DestroyEnemy();
@@ -96,6 +123,14 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         ren.setColor(Color.WHITE);
         ren.draw(score+"" , 15, 90);
         ren.endRendering();
+        
+        ren.beginRendering(90, 90);
+        ren.setColor(Color.WHITE);
+        ren.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
+        ren.endRendering();
+        }
+          
+       
     }
 
     @Override
@@ -118,10 +153,34 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
        }
     }
 
-    public void DrawBackground() {
+    public void DrawBackground(GL gl, int index) {
         gl.glEnable(GL.GL_BLEND);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[textureNames.length - 1]);    // Turn Blending On
+        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[index]);    // Turn Blending On
         gl.glPushMatrix();
+        gl.glBegin(GL.GL_QUADS);
+        // Front Face
+        gl.glTexCoord2f(0.0f, 0.0f);
+        gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+        gl.glTexCoord2f(1.0f, 0.0f);
+        gl.glVertex3f(1.0f, -1.0f, -1.0f);
+        gl.glTexCoord2f(1.0f, 1.0f);
+        gl.glVertex3f(1.0f, 1.0f, -1.0f);
+        gl.glTexCoord2f(0.0f, 1.0f);
+        gl.glVertex3f(-1.0f, 1.0f, -1.0f);
+        gl.glEnd();
+        gl.glPopMatrix();
+
+        gl.glDisable(GL.GL_BLEND);
+    }
+    
+    public void DrawBackgroundhom(GL gl, int index) {
+        gl.glEnable(GL.GL_BLEND);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[index]);	// Turn Blending On
+
+        gl.glPushMatrix();
+        //gl.glTranslated(-.90, .90, 0);
+        //gl.glScaled(0.1, 0.1, 1);
+
         gl.glBegin(GL.GL_QUADS);
         // Front Face
         gl.glTexCoord2f(0.0f, 0.0f);
@@ -288,13 +347,82 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         keyBits.clear(e.getKeyCode());
     }
 
-    @Override
-    public void mouseDragged(MouseEvent e) {
+ 
 
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        double x = e.getX();
+        double y = e.getY();
+
+
+//        System.out.println(x + " " + y);
+        Component c = e.getComponent();
+        double width = c.getWidth();
+        double height = c.getHeight();
+        System.out.println(width + " " + height);
+//get percent of GLCanvas instead of
+//points and then converting it to our
+//'100' based coordinate system.
+
+        xPosition = (int) ((x / width) * 100);
+        yPosition = ((int) ((y / height) * 100));
+//reversing direction of y axis
+        yPosition = 100 - yPosition;
+        if (home) {
+            //player1
+            if (xPosition <= 65 && xPosition >= 34 && yPosition <= 61 && yPosition >= 51) {
+                player1 = true;
+                home = false;
+                
+            }
+            if (xPosition <= 65 && xPosition >= 34 && yPosition <= 32 && yPosition >= 21) {
+                HowToPlay=true;
+                home = false;
+                
+            }
+            //exit
+            if (xPosition <= 55 && xPosition >= 44 && yPosition <= 9 && yPosition >= 2) {
+                System.out.println("Exit button clicked");
+                System.exit(0);
+            }
+        }
+        if(HowToPlay){
+            if (xPosition <= 59 && xPosition >= 40 && yPosition <= 22 && yPosition >= 15) {
+                home = true;
+                HowToPlay = false;                
+            }
+        }
+        System.out.println(xPosition + " " + yPosition);
+        glc.repaint();
     }
 
     @Override
-    public void mouseMoved(MouseEvent e) {
-        System.out.println(e.getX() + " " + e.getY());
+    public void mousePressed(MouseEvent e) {
     }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+    }
+
+    
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    private void updateTime() {
+        elapsedSeconds++;
+        if (elapsedSeconds == 60) {
+            elapsedSeconds = 0;
+            elapsedMinutes++;
+        }
+    }
+
+
+
+    
 }
