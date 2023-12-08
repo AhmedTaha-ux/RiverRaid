@@ -10,13 +10,29 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import javax.media.opengl.GLCanvas;
+import javax.swing.Timer;
+
 
 public class RiverRaidListener extends AnimListener implements KeyListener, MouseMotionListener {
     GL gl;
+
+public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener {
+
+    GL gl;
+    private Timer gameTimer;
+    private int elapsedMinutes, elapsedSeconds;
+    
+    int xPosition = 90;
+    int yPosition = 90;
+    boolean player1 = false,home = true, HowToPlay=false;
+
+
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
     int maxUpMovement = 600;
@@ -31,18 +47,29 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
 
     Entity hero = new Entity();
 
+
     Entity[] enemy = new Entity[5];
 
     BitSet keyBits = new BitSet(256);
     String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
             "Pause", "Score", "BG",
     };
+
+    
+    Entity [] enemy = new Entity[5];
+
+    BitSet keyBits = new BitSet(256);
+    String[] textureNames = {"Plane", "Fire2", "Bullet","Ship","Helicopter","Fire",
+            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"};
+    
+
     int[] enemiesIndex = {3, 4};
     TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
     int[] textures = new int[textureNames.length];
     //TODO: fixme (pixelated)
     TextRenderer textRenderer = new TextRenderer(new Font("Arial", Font.PLAIN, 10));
     ArrayList<Bullet> bullets = new ArrayList<>();
+
     float bulletScale = 0.3f;
     float planeScale = 1.0f;
     int archeryIndex = 7;
@@ -51,7 +78,12 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     float pauseScale = 0.8f;
     int bulletIndex = 2;
 
+    private GLCanvas glc;
 
+
+  public void setGLCanvas(GLCanvas glc) {
+        this.glc = glc;
+    }
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
         gl = glAutoDrawable.getGL();
@@ -79,6 +111,12 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
             }
         }
         CreateEnemy();
+        
+        gameTimer = new Timer(1000, e -> {
+        updateTime();
+        glc.repaint();
+        });
+        gameTimer.start();
     }
 
     @Override
@@ -86,9 +124,23 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         gl = glAutoDrawable.getGL();
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
+
         DrawBackground();
         handleKeyPress();
         DrawObject(hero.x, hero.y, planeScale, 0, hero.idx);
+
+        
+        if (home) {
+            DrawBackground(gl, 9);
+        }
+        if (HowToPlay) {
+            DrawBackground(gl, 11);
+        }
+          if (player1) {
+           DrawBackground(gl, 8);
+            
+        DrawObject(hero.x, hero.y, 1.0, 0, hero.idx);
+
         DrawEnemy();
         DestroyEnemy();
         Crash();
@@ -103,10 +155,27 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         DrawObject(50, 600, archeryScale, 0, archeryIndex);
         DrawObject(850, 600, pauseScale, 0, pauseIndex);
 
+
         textRenderer.beginRendering(100, 100);
         textRenderer.setColor(Color.WHITE);
         textRenderer.draw(score + "", 15, 90);
         textRenderer.endRendering();
+
+        DrawObject(50, 600, 0.9 , 0 , 7 );
+        DrawObject(850, 600, 0.8 , 0 , 6 );
+        ren.beginRendering(100, 100);
+        ren.setColor(Color.WHITE);
+        ren.draw(score+"" , 15, 90);
+        ren.endRendering();
+        
+        ren.beginRendering(90, 90);
+        ren.setColor(Color.WHITE);
+        ren.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
+        ren.endRendering();
+        }
+          
+       
+
     }
 
     @Override
@@ -128,9 +197,9 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         }
     }
 
-    public void DrawBackground() {
+    public void DrawBackground(GL gl, int index) {
         gl.glEnable(GL.GL_BLEND);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[textureNames.length - 1]);    // Turn Blending On
+        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[index]);    // Turn Blending On
         gl.glPushMatrix();
         gl.glBegin(GL.GL_QUADS);
         // Front Face
@@ -316,13 +385,78 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         keyBits.clear(e.getKeyCode());
     }
 
-    @Override
-    public void mouseDragged(MouseEvent e) {
+ 
 
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        double x = e.getX();
+        double y = e.getY();
+
+
+//        System.out.println(x + " " + y);
+        Component c = e.getComponent();
+        double width = c.getWidth();
+        double height = c.getHeight();
+        System.out.println(width + " " + height);
+//get percent of GLCanvas instead of
+//points and then converting it to our
+//'100' based coordinate system.
+
+        xPosition = (int) ((x / width) * 100);
+        yPosition = ((int) ((y / height) * 100));
+//reversing direction of y axis
+        yPosition = 100 - yPosition;
+        if (home) {
+            //player1
+            if (xPosition <= 65 && xPosition >= 34 && yPosition <= 61 && yPosition >= 51) {
+                player1 = true;
+                home = false;
+                
+            }
+            if (xPosition <= 65 && xPosition >= 34 && yPosition <= 32 && yPosition >= 21) {
+                HowToPlay=true;
+                home = false;
+                
+            }
+            //exit
+            if (xPosition <= 55 && xPosition >= 44 && yPosition <= 9 && yPosition >= 2) {
+                System.out.println("Exit button clicked");
+                System.exit(0);
+            }
+        }
+        if(HowToPlay){
+            if (xPosition <= 59 && xPosition >= 40 && yPosition <= 22 && yPosition >= 15) {
+                home = true;
+                HowToPlay = false;                
+            }
+        }
+        System.out.println(xPosition + " " + yPosition);
+        glc.repaint();
     }
 
     @Override
-    public void mouseMoved(MouseEvent e) {
-        System.out.println(e.getX() + " " + e.getY());
+    public void mousePressed(MouseEvent e) {
     }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+    }
+
+    
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    private void updateTime() {
+        elapsedSeconds++;
+        if (elapsedSeconds == 60) {
+            elapsedSeconds = 0;
+            elapsedMinutes++;
+        }
+    }  
 }
