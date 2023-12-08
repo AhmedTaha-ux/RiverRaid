@@ -1,4 +1,4 @@
-package GamePlay;
+package Texture;
 
 import com.sun.opengl.util.BufferUtil;
 import javax.imageio.ImageIO;
