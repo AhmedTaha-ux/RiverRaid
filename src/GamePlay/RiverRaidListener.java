@@ -172,30 +172,6 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
         gl.glDisable(GL.GL_BLEND);
     }
-    
-    public void DrawBackgroundhom(GL gl, int index) {
-        gl.glEnable(GL.GL_BLEND);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[index]);	// Turn Blending On
-
-        gl.glPushMatrix();
-        //gl.glTranslated(-.90, .90, 0);
-        //gl.glScaled(0.1, 0.1, 1);
-
-        gl.glBegin(GL.GL_QUADS);
-        // Front Face
-        gl.glTexCoord2f(0.0f, 0.0f);
-        gl.glVertex3f(-1.0f, -1.0f, -1.0f);
-        gl.glTexCoord2f(1.0f, 0.0f);
-        gl.glVertex3f(1.0f, -1.0f, -1.0f);
-        gl.glTexCoord2f(1.0f, 1.0f);
-        gl.glVertex3f(1.0f, 1.0f, -1.0f);
-        gl.glTexCoord2f(0.0f, 1.0f);
-        gl.glVertex3f(-1.0f, 1.0f, -1.0f);
-        gl.glEnd();
-        gl.glPopMatrix();
-
-        gl.glDisable(GL.GL_BLEND);
-    }
 
     public void DrawObject(int x, int y, double scale, double degree, int index) {
         gl.glEnable(GL.GL_BLEND);
