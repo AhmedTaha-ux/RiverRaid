@@ -1,5 +1,6 @@
 package GamePlay;
 
+import Texture.AnimListener;
 import Texture.TextureReader;
 import com.sun.opengl.util.j2d.TextRenderer;
 
@@ -17,17 +18,30 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import javax.media.opengl.GLCanvas;
 import javax.swing.Timer;
+import java.io.File;
+import java.io.FileInputStream;
+
+//import com.jogamp.opengl.*;
+//import com.jogamp.opengl.awt.GLCanvas;
+//import com.jogamp.opengl.util.FPSAnimator;
+
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 
 
-public class RiverRaidListener extends AnimListener implements KeyListener, MouseMotionListener {
-    GL gl;
 
 public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener {
+//    private Clip audioClip;
+//    private String audioFilePath = "chicken.wav";
 
     GL gl;
     private Timer gameTimer;
     private int elapsedMinutes, elapsedSeconds;
-    
+
     int xPosition = 90;
     int yPosition = 90;
     boolean player1 = false,home = true, HowToPlay=false;
@@ -40,28 +54,23 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     int maxRightMovement = 730;
     int maxLeftMovement = 175;
     int planeMovementSpeed = 8;
+//    FileInputStream music;
+    private Clip clip;
 
-    int idx, timer, delayShowEnemy, counter, score, delayDestroy, lives;
+//    AudioStream audios;
+
+    int timer, delayShowEnemy, counter, score, delayDestroy, lives;
     private long lastFireTime = 0;
     private final long fireDelay = 500;
 
     Entity hero = new Entity();
 
-
     Entity[] enemy = new Entity[5];
 
     BitSet keyBits = new BitSet(256);
     String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
-            "Pause", "Score", "BG",
+            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"
     };
-
-    
-    Entity [] enemy = new Entity[5];
-
-    BitSet keyBits = new BitSet(256);
-    String[] textureNames = {"Plane", "Fire2", "Bullet","Ship","Helicopter","Fire",
-            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"};
-    
 
     int[] enemiesIndex = {3, 4};
     TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
@@ -81,7 +90,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     private GLCanvas glc;
 
 
-  public void setGLCanvas(GLCanvas glc) {
+    public void setGLCanvas(GLCanvas glc) {
         this.glc = glc;
     }
     @Override
@@ -91,8 +100,21 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
         gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-        gl.glGenTextures(textureNames.length, textures, 0);
 
+
+
+
+        gl.glGenTextures(textureNames.length, textures, 0);
+//                try {
+//            music = new FileInputStream(new File("chicken dance song.wav"));
+//            audios = new AudioStream(music);
+//        } catch (Exception ex) {
+//            System.err.println(ex.getMessage());
+//        }
+//        AudioPlayer.player.start(audios);
+        gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+        gl.glGenTextures(textureNames.length, textures, 0);
         for (int i = 0; i < textureNames.length; i++) {
             try {
                 texture[i] = TextureReader.readTexture(assetsFolderName + textureNames[i] + ".png", true);
@@ -111,10 +133,10 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             }
         }
         CreateEnemy();
-        
+
         gameTimer = new Timer(1000, e -> {
-        updateTime();
-        glc.repaint();
+            updateTime();
+            glc.repaint();
         });
         gameTimer.start();
     }
@@ -125,56 +147,55 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
 
-        DrawBackground();
         handleKeyPress();
         DrawObject(hero.x, hero.y, planeScale, 0, hero.idx);
 
-        
+
         if (home) {
             DrawBackground(gl, 9);
+
         }
         if (HowToPlay) {
             DrawBackground(gl, 11);
-        }
-          if (player1) {
-           DrawBackground(gl, 8);
-            
-        DrawObject(hero.x, hero.y, 1.0, 0, hero.idx);
 
-        DrawEnemy();
-        DestroyEnemy();
-        Crash();
-        Fire();
-        if (hero.idx == 1) {
-            timer++;
-            if (timer > 10) {
-                hero = new Entity();
-                timer = 0;
+        }
+        if (player1) {
+            DrawBackground(gl, 8);
+
+
+            DrawObject(hero.x, hero.y, 1.0f, 0, hero.idx);
+
+            DrawEnemy();
+            DestroyEnemy();
+            Crash();
+            Fire();
+            if (hero.idx == 1) {
+                timer++;
+                if (timer > 10) {
+                    hero = new Entity();
+                    timer = 0;
+                }
             }
+            DrawObject(50, 600, archeryScale, 0, archeryIndex);
+            DrawObject(850, 600, pauseScale, 0, pauseIndex);
+
+
+            textRenderer.beginRendering(100, 100);
+            textRenderer.setColor(Color.WHITE);
+            textRenderer.draw(score + "", 15, 90);
+            textRenderer.endRendering();
+
+            DrawObject(50, 600, 0.9f , 0 , 7 );
+            DrawObject(850, 600, 0.8f , 0 , 6 );
+
+
+            textRenderer.beginRendering(90, 90);
+            textRenderer.setColor(Color.WHITE);
+            textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
+            textRenderer.endRendering();
         }
-        DrawObject(50, 600, archeryScale, 0, archeryIndex);
-        DrawObject(850, 600, pauseScale, 0, pauseIndex);
 
 
-        textRenderer.beginRendering(100, 100);
-        textRenderer.setColor(Color.WHITE);
-        textRenderer.draw(score + "", 15, 90);
-        textRenderer.endRendering();
-
-        DrawObject(50, 600, 0.9 , 0 , 7 );
-        DrawObject(850, 600, 0.8 , 0 , 6 );
-        ren.beginRendering(100, 100);
-        ren.setColor(Color.WHITE);
-        ren.draw(score+"" , 15, 90);
-        ren.endRendering();
-        
-        ren.beginRendering(90, 90);
-        ren.setColor(Color.WHITE);
-        ren.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
-        ren.endRendering();
-        }
-          
-       
 
     }
 
@@ -319,6 +340,37 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         }
     }
 
+    void loadAndPlayAudio(String audioFilePath) {
+        try {
+            // Get the audio file as a URL
+            URL audioUrl = getClass().getClassLoader().getResource(audioFilePath);
+            if (audioUrl == null) {
+                System.err.println("Error loading audio file.");
+                return;
+            }
+
+            // Get the file from the URL
+            File audioFile = Paths.get(audioUrl.toURI()).toFile();
+//            File audioFile = new File("path" + File.separator + "to" + File.separator + "audio" + File.separator + "background.wav");
+
+
+            // Create an AudioInputStream
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
+
+            // Get a Clip object to play the audio
+            clip = AudioSystem.getClip();
+            clip.open(audioInputStream);
+
+            // Play the audio
+            clip.start();
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+
+        } catch (IOException | UnsupportedAudioFileException | LineUnavailableException | URISyntaxException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @Override
     public void keyTyped(KeyEvent e) {
 
@@ -385,7 +437,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         keyBits.clear(e.getKeyCode());
     }
 
- 
+
 
     @Override
     public void mouseClicked(MouseEvent e) {
@@ -411,12 +463,12 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             if (xPosition <= 65 && xPosition >= 34 && yPosition <= 61 && yPosition >= 51) {
                 player1 = true;
                 home = false;
-                
+
             }
             if (xPosition <= 65 && xPosition >= 34 && yPosition <= 32 && yPosition >= 21) {
                 HowToPlay=true;
                 home = false;
-                
+
             }
             //exit
             if (xPosition <= 55 && xPosition >= 44 && yPosition <= 9 && yPosition >= 2) {
@@ -427,7 +479,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         if(HowToPlay){
             if (xPosition <= 59 && xPosition >= 40 && yPosition <= 22 && yPosition >= 15) {
                 home = true;
-                HowToPlay = false;                
+                HowToPlay = false;
             }
         }
         System.out.println(xPosition + " " + yPosition);
@@ -442,7 +494,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     public void mouseReleased(MouseEvent e) {
     }
 
-    
+
 
     @Override
     public void mouseExited(MouseEvent e) {
@@ -458,5 +510,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             elapsedSeconds = 0;
             elapsedMinutes++;
         }
-    }  
+    }
+
+
 }
