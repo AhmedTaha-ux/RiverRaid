@@ -3,7 +3,6 @@ package GamePlay;
 import Texture.AnimListener;
 import Texture.TextureReader;
 import com.sun.opengl.util.j2d.TextRenderer;
-
 import javax.media.opengl.GL;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.glu.GLU;
@@ -32,16 +31,21 @@ import java.nio.file.Paths;
 public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener {
 
     GL gl;
+    AudioInputStream audioStream;
+    private GLCanvas glc;
     private Timer gameTimer;
     private Clip clip;
-
     private int elapsedMinutes, elapsedSeconds;
-
+    
     int xPosition = 90;
     int yPosition = 90;
-    boolean player1 = false,home = true, HowToPlay=false;
-
-
+    boolean isOnePlayer = false;
+    boolean TwoPlayers = false;
+    boolean isHome = true;
+    boolean isHowToPlay = false;
+    boolean isMuted = false;
+    boolean isGamePaused = false;
+    boolean isSoundPlaying = true;
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
     int maxUpMovement = 600;
@@ -49,58 +53,61 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     int maxRightMovement = 730;
     int maxLeftMovement = 175;
     int planeMovementSpeed = 8;
-
-
-
-    int timer, delayShowEnemy, counter, score, delayDestroy, lives;
-    private long lastFireTime = 0;
-    private final long fireDelay = 500;
-
-    Entity hero = new Entity();
-
-    Entity[] enemy = new Entity[5];
-
-    BitSet keyBits = new BitSet(256);
-    String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
-            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"
-    };
-
-    int[] enemiesIndex = {3, 4};
-    TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
-    int[] textures = new int[textureNames.length];
-    //TODO: fixme (pixelated)
-    TextRenderer textRenderer = new TextRenderer(new Font("Arial", Font.PLAIN, 10));
-    ArrayList<Bullet> bullets = new ArrayList<>();
-
+    int bulletSpeed = 11;
+    int gameBackGroundIndex = 8;
     float bulletScale = 0.3f;
     float planeScale = 1.0f;
     int archeryIndex = 7;
     float archeryScale = 0.9f;
     int pauseIndex = 6;
     float pauseScale = 0.8f;
+    int mutedHomeIndex = 10;
+    int defaultHomeIndex = 9;
+    int onePlayerIndex = 8;
+    int howToPlayIndex = 11;
     int bulletIndex = 2;
+    int timer, delayShowEnemy, counter, score, delayDestroy, lives;
+    private long lastFireTime = 0;
+    private final long fireDelay = 500;
 
-    private GLCanvas glc;
-
-
+    Entity hero = new Entity();
+    Entity hero2 = new Entity();
+    Entity[] enemy = new Entity[5];
+    BitSet keyBits = new BitSet(256);
+    String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
+            "Pause", "Score", "BG","Home1","Home2","HP1","HP2"
+    };
+    int[] enemiesIndex = {3, 4};
+    TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
+    int[] textures = new int[textureNames.length];
+    //TODO: fixme (pixelated)
+    TextRenderer textRenderer = new TextRenderer(new Font("Arial", Font.PLAIN, 10));
+    ArrayList<Bullet> bullets = new ArrayList<>();
+    
     public void setGLCanvas(GLCanvas glc) {
         this.glc = glc;
     }
+    
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
+        try {
+            audioStream = AudioSystem.getAudioInputStream(new File("Assets//Music//chicken.wav"));
+            clip = AudioSystem.getClip();
+            clip.open(audioStream);
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
         gl = glAutoDrawable.getGL();
         gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);    //This Will Clear The Background Color To Black
 
         gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
-        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-
-
-
-
-        gl.glGenTextures(textureNames.length, textures, 0);
+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);        
+         gl.glGenTextures(textureNames.length, textures, 0);
         gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
         gl.glGenTextures(textureNames.length, textures, 0);
+        
         for (int i = 0; i < textureNames.length; i++) {
             try {
                 texture[i] = TextureReader.readTexture(assetsFolderName + textureNames[i] + ".png", true);
@@ -129,58 +136,80 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
     @Override
     public void display(GLAutoDrawable glAutoDrawable) {
-        gl = glAutoDrawable.getGL();
-        gl.glClear(GL.GL_COLOR_BUFFER_BIT);
-        gl.glLoadIdentity();
+        if (!isGamePaused) {
+            gl = glAutoDrawable.getGL();
+            gl.glClear(GL.GL_COLOR_BUFFER_BIT);
+            gl.glLoadIdentity();
 
-        handleKeyPress();
-        DrawObject(hero.x, hero.y, planeScale, 0, hero.idx);
+            handleKeyPress();
+            DrawObject(hero.x, hero.y, planeScale, 0, hero.idx);
 
-
-        if (home) {
-            DrawBackground(gl, 9);
-
-        }
-        if (HowToPlay) {
-            DrawBackground(gl, 11);
-        }
-        if (player1) {
-            DrawBackground(gl, 8);
-
-            DrawObject(hero.x, hero.y, 1.0f, 0, hero.idx);
-
-            DrawEnemy();
-            DestroyEnemy();
-            Crash();
-            Fire();
-            if (hero.idx == 1) {
-                timer++;
-                if (timer > 10) {
-                    hero = new Entity();
-                    timer = 0;
+            if (isHome) {
+                if (isSoundPlaying) {
+                    DrawBackground(gl, defaultHomeIndex);
+                } else {
+                    DrawBackground(gl, mutedHomeIndex);
                 }
+                glc.repaint();
             }
-            DrawObject(50, 600, archeryScale, 0, archeryIndex);
-            DrawObject(850, 600, pauseScale, 0, pauseIndex);
+            if (isHowToPlay) {
+                DrawBackground(gl, 11);
+            }
+            if (isOnePlayer) {
+                DrawBackground(gl, gameBackGroundIndex);
+                DrawObject(hero.x, hero.y, 1.0f, 0, hero.idx);
+                DrawEnemy();
+                DestroyEnemy();
+                Crash();
+                Fire();
+                if (hero.idx == 1) {
+                    timer++;
+                    if (timer > 10) {
+                        hero = new Entity();
+                        timer = 0;
+                    }
+                }
+                DrawObject(50, 600, archeryScale, 0, archeryIndex);
+                DrawObject(850, 600, pauseScale, 0, pauseIndex);
+                textRenderer.beginRendering(100, 100);
+                textRenderer.setColor(Color.WHITE);
+                textRenderer.draw(score + "", 15, 90);
+                textRenderer.endRendering();
+            }
+            gameTimer.start();
+        
+            if (TwoPlayers) {
+                DrawBackground(gl, gameBackGroundIndex);
+                DrawObject(hero.x1, hero.y1, 1.0f, 0, hero.idx);
+                DrawObject(hero2.x2, hero2.y2, 1.0f, 0, hero2.idx);
 
-
-            textRenderer.beginRendering(100, 100);
-            textRenderer.setColor(Color.WHITE);
-            textRenderer.draw(score + "", 15, 90);
-            textRenderer.endRendering();
-
-            DrawObject(50, 600, 0.9f , 0 , 7 );
-            DrawObject(850, 600, 0.8f , 0 , 6 );
-
-
-            textRenderer.beginRendering(90, 90);
-            textRenderer.setColor(Color.WHITE);
-            textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
-            textRenderer.endRendering();
-        }
-
-
-
+                DrawEnemy();
+                DestroyEnemy();
+                Crash();
+                Fire();
+                if (hero.idx == 1) {
+                    timer++;
+                    if (timer > 10) {
+                        hero = new Entity();
+                        timer = 0;
+                    }
+                }
+                 if (hero2.idx == 1) {
+                    timer++;
+                    if (timer > 10) {
+                        hero2 = new Entity();
+                        timer = 0;
+                    }
+                }
+                DrawObject(50, 600, archeryScale, 0, archeryIndex);
+                DrawObject(850, 600, pauseScale, 0, pauseIndex);
+                textRenderer.beginRendering(100, 100);
+                textRenderer.setColor(Color.WHITE);
+                textRenderer.draw(score + "", 15, 90);
+                textRenderer.endRendering();
+            }
+            gameTimer.start();
+           }
     }
 
     @Override
@@ -196,8 +225,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     public void Fire() {
         for (Bullet bullet : bullets) {
             if (bullet.isFired) {
-                bullet.y += 9;
-                DrawObject(bullet.x, bullet.y + 35, bulletScale, 0, bulletIndex);
+                bullet.y += bulletSpeed;
+                DrawObject(bullet.x, bullet.y + 35, bulletScale, 0, bulletIndex);               
             }
         }
     }
@@ -302,28 +331,70 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
     void Crash() {
         for (Entity entity : enemy) {
-            if (Math.abs(hero.x - entity.x) < 75 && Math.abs(hero.y - entity.y) < 50) {
-                System.out.println("Crash");
-                hero.idx = 1;
-                entity.idx = 5;
-                entity.speed = 0;
-                // TODO: condition is always true do we need it or can be wrapped out?
-                if (entity.idx == 5) {
-                    delayDestroy++;
-                    if (delayDestroy > 5) {
-                        lives--;
-                        System.out.println("lives :" + lives);
-                        delayDestroy = 0;
-                        entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
-                        entity.x = (int) (Math.random() * 500 + 200);
-                        entity.y = 600;
-                        entity.speed = 7;
+           if(isOnePlayer){ 
+                if (Math.abs(hero.x - entity.x) < 75 && Math.abs(hero.y - entity.y) < 50) {
+                    System.out.println("Crash");
+                    hero.idx = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
+                    // TODO: condition is always true do we need it or can be wrapped out?
+                    if (entity.idx == 5) {
+                        delayDestroy++;
+                        if (delayDestroy > 5) {
+                            lives--;
+                            System.out.println("lives :" + lives);
+                            delayDestroy = 0;
+                            entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                            entity.x = (int) (Math.random() * 500 + 200);
+                            entity.y = 600;
+                            entity.speed = 7;
+                        }
                     }
                 }
-            }
+           }
+           if(TwoPlayers){
+              if (Math.abs(hero.x1 - entity.x) < 75 && Math.abs(hero.y1 - entity.y) < 50) {
+                    System.out.println("Crash");
+                    hero.idx = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
+                    // TODO: condition is always true do we need it or can be wrapped out?
+                    if (entity.idx == 5) {
+                        delayDestroy++;
+                        if (delayDestroy > 5) {
+                            lives--;
+                            System.out.println("lives :" + lives);
+                            delayDestroy = 0;
+                            entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                            entity.x = (int) (Math.random() * 500 + 200);
+                            entity.y = 600;
+                            entity.speed = 7;
+                        }
+                    }
+              }
+               if (Math.abs(hero2.x2 - entity.x) < 75 && Math.abs(hero2.y2 - entity.y) < 50) {
+                    System.out.println("Crash");
+                    hero2.idx = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
+                    // TODO: condition is always true do we need it or can be wrapped out?
+                    if (entity.idx == 5) {
+                        delayDestroy++;
+                        if (delayDestroy > 5) {
+                            lives--;
+                            System.out.println("lives :" + lives);
+                            delayDestroy = 0;
+                            entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                            entity.x = (int) (Math.random() * 500 + 200);
+                            entity.y = 600;
+                            entity.speed = 7;
+                        }
+                    }
+                }
+           }
         }
     }
-
+    
     void loadAndPlayAudio(String audioFilePath) {
         try {
             // Get the audio file as a URL
@@ -350,6 +421,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
         } catch (IOException | UnsupportedAudioFileException | LineUnavailableException | URISyntaxException e) {
             e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
@@ -363,10 +435,16 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         keyBits.set(keyCode);
+        if (isOnePlayer) {
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                isGamePaused = !isGamePaused;
+            }
+        }
     }
 
     public void handleKeyPress() {
         long currentTime = System.currentTimeMillis();
+        if(isOnePlayer){
         if (hero.idx != 1) {
             if (isKeyPressed(KeyEvent.VK_LEFT) && isKeyPressed(KeyEvent.VK_DOWN)) {
                 return;
@@ -380,6 +458,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             if (isKeyPressed(KeyEvent.VK_RIGHT) && isKeyPressed(KeyEvent.VK_UP)) {
                 return;
             }
+          
             if (isKeyPressed(KeyEvent.VK_LEFT)) {
                 if (hero.x >= maxLeftMovement) {
                     hero.x -= planeMovementSpeed;
@@ -408,11 +487,94 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 bullets.add(new Bullet(hero.x, hero.y));
                 lastFireTime = currentTime;
             }
+           
         }
-    }
+        }
+        if(TwoPlayers){
+            //for player one
+          if (hero.idx != 1) {
+            if (isKeyPressed(KeyEvent.VK_LEFT) && isKeyPressed(KeyEvent.VK_DOWN)) {
+                return;
+            }
+            if (isKeyPressed(KeyEvent.VK_RIGHT) && isKeyPressed(KeyEvent.VK_DOWN)) {
+                return;
+            }
+            if (isKeyPressed(KeyEvent.VK_LEFT) && isKeyPressed(KeyEvent.VK_UP)) {
+                return;
+            }
+            if (isKeyPressed(KeyEvent.VK_RIGHT) && isKeyPressed(KeyEvent.VK_UP)) {
+                return;
+            }
+            if (isKeyPressed(KeyEvent.VK_LEFT)) {
+                if (hero.x1 >= maxLeftMovement) {
+                    hero.x1 -= planeMovementSpeed;
+                } else {
+                    hero.idx = 1;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_RIGHT)) {
+                if (hero.x1 <= maxRightMovement) {
+                    hero.x1 += planeMovementSpeed;
+                } else {
+                    hero.idx = 1;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_DOWN)) {
+                if (hero.y1 > maxDownMovement) {
+                    hero.y1 -= planeMovementSpeed;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_UP)) {
+                if (hero.y1 < maxUpMovement) {
+                    hero.y1 += planeMovementSpeed;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
+                bullets.add(new Bullet(hero.x1, hero.y1));
+                lastFireTime = currentTime;
+            }
+           
+        }
+            
+            //for player two
+             if (hero2.idx != 1) {
+                if (isKeyPressed(KeyEvent.VK_A)) {
+                    if (hero2.x2 >= maxLeftMovement) {
+                        hero2.x2 -= planeMovementSpeed;
+                    } else {
+                        hero2.idx = 1;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_D)) {
+                    if (hero2.x2 <= maxRightMovement) {
+                        hero2.x2 += planeMovementSpeed;
+                    } else {
+                        hero2.idx = 1;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_S)) {
+                    if (hero2.y2 > maxDownMovement) {
+                        hero2.y2 -= planeMovementSpeed;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_W)) {
+                    if (hero2.y2 < maxUpMovement) {
+                        hero2.y2 += planeMovementSpeed;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_B) && (currentTime - lastFireTime >= fireDelay)) {
+                    bullets.add(new Bullet(hero2.x2, hero2.y2));
+                    lastFireTime = currentTime;
+                }
+             }   
+ 
+            }
+        
+           }
 
     public boolean isKeyPressed(final int keyCode) {
         return keyBits.get(keyCode);
+        
     }
 
     @Override
@@ -427,7 +589,6 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         double x = e.getX();
         double y = e.getY();
 
-
 //        System.out.println(x + " " + y);
         Component c = e.getComponent();
         double width = c.getWidth();
@@ -441,16 +602,22 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         yPosition = ((int) ((y / height) * 100));
 //reversing direction of y axis
         yPosition = 100 - yPosition;
-        if (home) {
+        if (isHome) {
             //player1
             if (xPosition <= 65 && xPosition >= 34 && yPosition <= 61 && yPosition >= 51) {
-                player1 = true;
-                home = false;
+                isOnePlayer = true;
+                isHome = false;
+
+            }
+            //player2
+            if (xPosition <= 65 && xPosition >= 34 && yPosition <= 46 && yPosition >= 37) {
+                TwoPlayers = true;
+                isHome = false;
 
             }
             if (xPosition <= 65 && xPosition >= 34 && yPosition <= 32 && yPosition >= 21) {
-                HowToPlay=true;
-                home = false;
+                isHowToPlay=true;
+                isHome = false;
 
             }
             //exit
@@ -458,12 +625,24 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 System.out.println("Exit button clicked");
                 System.exit(0);
             }
-        }
-        if(HowToPlay){
-            if (xPosition <= 59 && xPosition >= 40 && yPosition <= 22 && yPosition >= 15) {
-                home = true;
-                HowToPlay = false;
+             if (xPosition >= 87 && xPosition <= 94 && yPosition >= 85 && yPosition <= 95) {
+                System.out.println("Mute clicked");
+                isMuted = true;
+                switchClipState();
             }
+        }
+            if(isHowToPlay){
+                if (xPosition <= 59 && xPosition >= 40 && yPosition <= 22 && yPosition >= 15) {
+                    isHome = true;
+                    isHowToPlay = false;
+            }
+            if (isOnePlayer || TwoPlayers) {
+//            Pause button X: 86 ->93, Y :88 ->95
+                if (xPosition >= 86 && xPosition <= 93 && yPosition >= 88 && yPosition <= 95) {
+                    isGamePaused = !isGamePaused;
+                }
+            }
+            
         }
         System.out.println(xPosition + " " + yPosition);
         glc.repaint();
@@ -492,6 +671,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         if (elapsedSeconds == 60) {
             elapsedSeconds = 0;
             elapsedMinutes++;
+        }
+    }
+     //TODO: Set plane movement speed, Set firing rate, Set number of enemies to differentiate difficulty
+    public void easy() {
+
+    }
+
+    public void medium() {
+
+    }
+
+    public void hard() {
+
+    }
+
+    public void switchClipState() {
+        if (clip != null && clip.isRunning()) {
+            clip.stop();
+            isSoundPlaying = false;
+        } else if (clip != null && !clip.isRunning()) {
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+            isSoundPlaying = true;
         }
     }
 }
