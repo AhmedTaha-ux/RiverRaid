@@ -6,13 +6,6 @@ import com.sun.opengl.util.FPSAnimator;
 import javax.media.opengl.GLCanvas;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseMotionListener;
-import javax.sound.sampled.*;
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
 
 
 public class RiverRaid extends JFrame {
@@ -28,7 +21,7 @@ public class RiverRaid extends JFrame {
         glcanvas.addKeyListener(listener);
         
         add(glcanvas, BorderLayout.CENTER);
-        Animator animator = new FPSAnimator(35);
+        Animator animator = new FPSAnimator(40);
         animator.add(glcanvas);
         animator.start();
         glcanvas.addMouseListener(listener);
@@ -38,7 +31,6 @@ public class RiverRaid extends JFrame {
         setTitle("River Raid Application");
         setSize(1000, 700);
         setLocationRelativeTo(null);
-        listener.loadAndPlayAudio("audio/chicken.wav");
 
         setVisible(true);
         setFocusable(true);
