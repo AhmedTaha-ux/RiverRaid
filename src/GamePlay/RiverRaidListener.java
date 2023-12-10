@@ -18,11 +18,23 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import javax.media.opengl.GLCanvas;
 import javax.swing.Timer;
+import java.io.File;
+
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
+
+
 
 public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener {
 
     GL gl;
     private Timer gameTimer;
+    private Clip clip;
+
     private int elapsedMinutes, elapsedSeconds;
 
     int xPosition = 90;
@@ -37,6 +49,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     int maxRightMovement = 730;
     int maxLeftMovement = 175;
     int planeMovementSpeed = 8;
+
+
 
     int timer, delayShowEnemy, counter, score, delayDestroy, lives;
     private long lastFireTime = 0;
@@ -79,8 +93,14 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
         gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-        gl.glGenTextures(textureNames.length, textures, 0);
 
+
+
+
+        gl.glGenTextures(textureNames.length, textures, 0);
+        gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+        gl.glGenTextures(textureNames.length, textures, 0);
         for (int i = 0; i < textureNames.length; i++) {
             try {
                 texture[i] = TextureReader.readTexture(assetsFolderName + textureNames[i] + ".png", true);
@@ -119,6 +139,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
         if (home) {
             DrawBackground(gl, 9);
+
         }
         if (HowToPlay) {
             DrawBackground(gl, 11);
@@ -302,6 +323,36 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             }
         }
     }
+
+    void loadAndPlayAudio(String audioFilePath) {
+        try {
+            // Get the audio file as a URL
+            URL audioUrl = getClass().getClassLoader().getResource(audioFilePath);
+            if (audioUrl == null) {
+                System.err.println("Error loading audio file.");
+                return;
+            }
+
+            // Get the file from the URL
+            File audioFile = Paths.get(audioUrl.toURI()).toFile();
+
+
+            // Create an AudioInputStream
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
+
+            // Get a Clip object to play the audio
+            clip = AudioSystem.getClip();
+            clip.open(audioInputStream);
+
+            // Play the audio
+            clip.start();
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+
+        } catch (IOException | UnsupportedAudioFileException | LineUnavailableException | URISyntaxException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @Override
     public void keyTyped(KeyEvent e) {
