@@ -7,6 +7,13 @@ import javax.media.opengl.GLCanvas;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseMotionListener;
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
+
 
 public class RiverRaid extends JFrame {
 
@@ -27,9 +34,12 @@ public class RiverRaid extends JFrame {
         glcanvas.addMouseListener(listener);
         listener.setGLCanvas(glcanvas);
 
+
         setTitle("River Raid Application");
         setSize(1000, 700);
         setLocationRelativeTo(null);
+        listener.loadAndPlayAudio("audio/chicken.wav");
+
         setVisible(true);
         setFocusable(true);
         glcanvas.requestFocus();
