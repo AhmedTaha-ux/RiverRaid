@@ -1,7 +1,7 @@
 package GamePlay;
 
 public class Entity {
-    public int x, y, idx, speed = 5, score = 1;
+    public int x, y, idx, speed = 5, score = 10;
 
     Entity() {
         x = 450;
