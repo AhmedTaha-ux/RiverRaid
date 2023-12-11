@@ -19,6 +19,7 @@ import java.util.BitSet;
 import javax.media.opengl.GLCanvas;
 import javax.swing.Timer;
 import java.io.File;
+import java.io.*;
 
 import javax.sound.sampled.*;
 
@@ -45,6 +46,10 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     int maxRightMovement = 730;
     int maxLeftMovement = 175;
     int planeMovementSpeed = 8;
+    private int highScorePlayer1 = 0;
+    private int highScorePlayer2 = 0;
+    private final String highScoreFilePath = "highscores.txt";
+    private int lastGameScore = 0;
 
     int timer, delayShowEnemy, counter, score, delayDestroy, lives = 3, bankermove = 400,bulletSpeed;
     private long lastFireTime = 0;
@@ -127,6 +132,9 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             }
         }
         CreateEnemy();
+        loadHighScores();
+
+
 
         gameTimer = new Timer(1000, e -> {
             updateTime();
@@ -246,9 +254,27 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 break;
             case "Win":
                 DrawBackground(gl,16);
+                DrawBackground(gl, 16);
+
+                // Display score and highest score on the Win page
+                textRenderer.beginRendering(200, 200);
+                textRenderer.setColor(Color.WHITE);
+                textRenderer.draw("" + score, 74, 70);
+                textRenderer.draw("" + highScorePlayer1, 115, 70);
+                textRenderer.endRendering();
+                lastGameScore = score;
+
                 break;
             case "Lose":
                 DrawBackground(gl,17);
+                // Display score and highest score on the Lose page
+                textRenderer.beginRendering(200, 200);
+                textRenderer.setColor(Color.WHITE);
+                textRenderer.draw("" + score, 74, 70);
+                textRenderer.draw("" + highScorePlayer1, 115, 70);
+                textRenderer.endRendering();
+                lastGameScore = score;
+
                 break;
         }
        
@@ -322,6 +348,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         gl.glPopMatrix();
         gl.glDisable(GL.GL_BLEND);
     }
+
+
 
     public void CreateEnemy() {
         int x, idx;
@@ -696,7 +724,23 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 }
         }
     }
+    private void saveHighScores() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(highScoreFilePath))) {
+            writer.println(highScorePlayer1);
+            writer.println(highScorePlayer2);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
+    private void loadHighScores() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(highScoreFilePath))) {
+            highScorePlayer1 = Integer.parseInt(reader.readLine());
+            highScorePlayer2 = Integer.parseInt(reader.readLine());
+        } catch (IOException | NumberFormatException e) {
+            e.printStackTrace();
+        }
+    }
    public void Default() {
         lives = 3;
         score = 0;
@@ -708,7 +752,15 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         pause = false;
         counter = 0;
         bullets.clear();
-    }
+
+       if (lastGameScore > highScorePlayer1) {
+           highScorePlayer1 = lastGameScore;
+       }
+
+       // Save the scores to the file
+       saveHighScores();
+
+   }
 
 
         @Override
