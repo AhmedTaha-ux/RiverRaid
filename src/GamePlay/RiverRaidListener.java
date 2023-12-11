@@ -51,13 +51,14 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     private final long fireDelay = 500;
 
     Entity hero = new Entity();
+    Entity hero2 = new Entity();
 
     Entity[] enemy = new Entity[5];
 
     BitSet keyBits = new BitSet(256);
     String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
             "Pause", "Score", "River", "Home", "HowToPlay", "Menu", "Sound", "Muted", "Right",
-            "Left", "Win", "GameOver", "Levels"
+            "Left", "Win", "GameOver", "Levels","Plane2"
     };
 
     int[] enemiesIndex = {3, 4};
@@ -191,6 +192,43 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 textRenderer.endRendering();
 
                 gameTimer.start();
+                
+                if(playMode=="multi"){
+                   DrawBackground(gl, 8);
+
+                   DrawObject(hero.x1, hero.y1, 1.0f, 0, hero.idx);
+                   DrawObject(hero2.x2, hero2.y2, 1.0f, 0, hero2.idx2);
+
+                   DrawEnemy();
+                   DestroyEnemy();
+                   Crash();
+                   Fire();
+                   if (hero.idx == 1) {
+                       timer++;
+                       if (timer > 10) {
+                           hero = new Entity();
+                           timer = 0;
+                       }
+                   }
+                    if (hero2.idx2 == 1) {
+                       timer++;
+                       if (timer > 10) {
+                           hero2 = new Entity();
+                           timer = 0;
+                       }
+                   }
+                   DrawObject(50, 600, archeryScale, 0, archeryIndex);
+                   DrawObject(850, 600, pauseScale, 0, pauseIndex);
+
+
+                   textRenderer.beginRendering(200, 200);
+                   textRenderer.setColor(Color.WHITE);
+                   textRenderer.draw(score + "", 50, 170);
+                   textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
+                   textRenderer.endRendering();
+
+                   gameTimer.start();
+               }
 
                 if (pause) {
                     DrawObject(450, 350, 7, 0, 11);
@@ -213,6 +251,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 DrawBackground(gl,17);
                 break;
         }
+       
+        
 
     }
 
@@ -343,6 +383,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
     void Crash() {
         for (Entity entity : enemy) {
+           if("single".equals(playMode)){
             if (Math.abs(hero.x - entity.x) < 75 && Math.abs(hero.y - entity.y) < 50) {
                 System.out.println("Crash");
                 hero.idx = 1;
@@ -359,6 +400,49 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                     entity.speed = 7;
                 }
             }
+           }
+            
+            if("multi".equals(playMode)){
+              if (Math.abs(hero.x1 - entity.x) < 75 && Math.abs(hero.y1 - entity.y) < 50) {
+                System.out.println("Crash");
+                hero.idx = 1;
+                entity.idx = 5;
+                entity.speed = 0;
+                // TODO: condition is always true do we need it or can be wrapped out?
+                if (entity.idx == 5) {
+                    delayDestroy++;
+                    if (delayDestroy > 5) {
+                        lives--;
+                        System.out.println("lives :" + lives);
+                        delayDestroy = 0;
+                        entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                        entity.x = (int) (Math.random() * 500 + 200);
+                        entity.y = 600;
+                        entity.speed = 7;
+                    }
+                }
+              }
+               if (Math.abs(hero2.x2 - entity.x) < 75 && Math.abs(hero2.y2 - entity.y) < 50) {
+                System.out.println("Crash");
+                hero2.idx2 = 1;
+                entity.idx = 5;
+                entity.speed = 0;
+                // TODO: condition is always true do we need it or can be wrapped out?
+                if (entity.idx == 5) {
+                    delayDestroy++;
+                    if (delayDestroy > 5) {
+                        lives--;
+                        System.out.println("lives :" + lives);
+                        delayDestroy = 0;
+                        entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                        entity.x = (int) (Math.random() * 500 + 200);
+                        entity.y = 600;
+                        entity.speed = 7;
+                    }
+                }
+              }
+            }
+    
         }
     }
 
@@ -375,6 +459,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
     public void handleKeyPress() {
         long currentTime = System.currentTimeMillis();
+        if("single".equals(playMode)){
         if (hero.idx != 1 && !pause) {
             if (isKeyPressed(KeyEvent.VK_LEFT)) {
                 if (hero.x >= maxLeftMovement) {
@@ -409,6 +494,72 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 bullets.add(new Bullet(hero.x, hero.y));
                 lastFireTime = currentTime;
             }
+        }
+        }
+        if("multi".equals(playMode)){
+        if (hero.idx != 1 && !pause) {
+             if (isKeyPressed(KeyEvent.VK_LEFT)) {
+                if (hero.x1 >= maxLeftMovement) {
+                    hero.x1 -= planeMovementSpeed;
+                } else {
+                    hero.idx = 1;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_RIGHT)) {
+                if (hero.x1 <= maxRightMovement) {
+                    hero.x1 += planeMovementSpeed;
+                } else {
+                    hero.idx = 1;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_DOWN)) {
+                if (hero.y1 > maxDownMovement) {
+                    hero.y1 -= planeMovementSpeed;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_UP)) {
+                if (hero.y1 < maxUpMovement) {
+                    hero.y1 += planeMovementSpeed;
+                }
+            }
+            if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
+                bullets.add(new Bullet(hero.x1, hero.y1));
+                lastFireTime = currentTime;
+            }
+           
+        }
+            
+            //movement for player two
+             if (hero2.idx2 != 1) {
+                if (isKeyPressed(KeyEvent.VK_A)) {
+                    if (hero2.x2 >= maxLeftMovement) {
+                        hero2.x2 -= planeMovementSpeed;
+                    } else {
+                        hero2.idx2 = 1;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_D)) {
+                    if (hero2.x2 <= maxRightMovement) {
+                        hero2.x2 += planeMovementSpeed;
+                    } else {
+                        hero2.idx2 = 1;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_S)) {
+                    if (hero2.y2 > maxDownMovement) {
+                        hero2.y2 -= planeMovementSpeed;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_W)) {
+                    if (hero2.y2 < maxUpMovement) {
+                        hero2.y2 += planeMovementSpeed;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_C) && (currentTime - lastFireTime >= fireDelay)) {
+                    bullets.add(new Bullet(hero2.x2, hero2.y2));
+                    lastFireTime = currentTime;
+                }
+             }
         }
     }
 
