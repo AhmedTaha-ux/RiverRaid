@@ -24,55 +24,45 @@ import java.io.*;
 import javax.sound.sampled.*;
 
 
-public class RiverRaidListener extends AnimListener implements KeyListener,MouseListener, GLEventListener {
-
+public class RiverRaidListener extends AnimListener implements KeyListener, MouseListener, GLEventListener {
     GL gl;
     AudioInputStream audioStream;
     private Timer gameTimer;
     private Clip clip;
-
     private int elapsedMinutes, elapsedSeconds;
-
     int xPosition = 90;
     int yPosition = 90;
     String page = "Home", gameLevel, playMode;
-    boolean sound = true, pause;
-
-
+    boolean isSoundPlaying = true;
+    boolean isPaused = false;
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
     int maxUpMovement = 600;
     int maxDownMovement = 20;
     int maxRightMovement = 730;
-    int maxLeftMovement = 175;
+    int maxLeftMovement = 215;
     int planeMovementSpeed = 8;
     private int highScorePlayer1 = 0;
     private int highScorePlayer2 = 0;
     private final String highScoreFilePath = "highscores.txt";
     private int lastGameScore = 0;
-
-    int timer, delayShowEnemy, counter, score, delayDestroy, lives = 3, bankermove = 400,bulletSpeed;
+    int timer, delayShowEnemy, counter, score, delayDestroy, lives = 3, backGroundMove = 400, bulletSpeed;
     private long lastFireTime = 0;
-    private final long fireDelay = 500;
-
-    Entity hero = new Entity();
-    Entity hero2 = new Entity();
-
-    Entity[] enemy = new Entity[5];
-
+    private long clipMicrosecondPosition;
+    Entity plane = new Entity();
+    Entity plane2 = new Entity();
+    int numberOfEnemies = 5;
+    Entity[] enemy = new Entity[numberOfEnemies];
     BitSet keyBits = new BitSet(256);
     String[] textureNames = {"Plane", "Fire2", "Bullet", "Ship", "Helicopter", "Fire",
             "Pause", "Score", "River", "Home", "HowToPlay", "Menu", "Sound", "Muted", "Right",
-            "Left", "Win", "GameOver", "Levels","Plane2"
+            "Left", "Win", "GameOver", "Levels", "Plane2"
     };
-
     int[] enemiesIndex = {3, 4};
     TextureReader.Texture[] texture = new TextureReader.Texture[textureNames.length];
     int[] textures = new int[textureNames.length];
-    //TODO: fixme (pixelated)
     TextRenderer textRenderer = new TextRenderer(new Font("Arial", Font.PLAIN, 10));
     ArrayList<Bullet> bullets = new ArrayList<>();
-
     float bulletScale = 0.3f;
     float planeScale = 1.0f;
     int archeryIndex = 7;
@@ -80,40 +70,30 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     int pauseIndex = 6;
     float pauseScale = 0.8f;
     int bulletIndex = 2;
-
+    int enemySpeed = 8;
+    int winningScore = 100;
+    String clipPath;
+    String gameClip;
     private GLCanvas glc;
-
 
     public void setGLCanvas(GLCanvas glc) {
         this.glc = glc;
     }
+
     @Override
     public void init(GLAutoDrawable glAutoDrawable) {
         for (int i = 0; i < textureNames.length; i++) {
             System.out.println(i + " = " + textureNames[i]);
         }
-
-        try {
-            audioStream = AudioSystem.getAudioInputStream(new File("Assets//Music//chicken.wav"));
-            clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.loop(Clip.LOOP_CONTINUOUSLY);
-            clip.start();
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-
+        playBackGroundMusic();
         gl = glAutoDrawable.getGL();
         gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);    //This Will Clear The Background Color To Black
-
-        gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
-        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-
-
-        gl.glGenTextures(textureNames.length, textures, 0);
         gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
         gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
         gl.glGenTextures(textureNames.length, textures, 0);
+//        gl.glEnable(GL.GL_TEXTURE_2D);  // Enable Texture Mapping
+//        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+//        gl.glGenTextures(textureNames.length, textures, 0);
         for (int i = 0; i < textureNames.length; i++) {
             try {
                 texture[i] = TextureReader.readTexture(assetsFolderName + textureNames[i] + ".png", true);
@@ -135,7 +115,6 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         loadHighScores();
 
 
-
         gameTimer = new Timer(1000, e -> {
             updateTime();
             glc.repaint();
@@ -149,33 +128,36 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         gl.glClear(GL.GL_COLOR_BUFFER_BIT);
         gl.glLoadIdentity();
 
-        handleKeyPress();
-        DrawObject(hero.x, hero.y, planeScale, 0, hero.idx);
+        DrawObject(plane.x, plane.y, planeScale, 0, plane.idx);
 
 
         switch (page) {
             case "Home":
-                int soundIndex = sound ? 12 : 13;
-                if(soundIndex == 12){
+                int soundIndex = isSoundPlaying ? 12 : 13;
+                if (soundIndex == 12) {
                     clip.loop(Clip.LOOP_CONTINUOUSLY);
                 }
-                DrawBackground(gl,9);
+                if (soundIndex == 13) {
+                    clip.stop();
+                }
+                DrawBackground(gl, 9);
                 DrawObject(850, 600, 1.0f, 0, soundIndex);
                 textRenderer.beginRendering(100, 100);
                 textRenderer.setColor(Color.WHITE);
                 textRenderer.endRendering();
                 break;
             case "HowToPlay":
-                DrawBackground(gl,10);
+                DrawBackground(gl, 10);
                 break;
             case "Levels":
-                DrawBackground(gl,18);
+                DrawBackground(gl, 18);
                 break;
             case "Game":
-                DrawBackground(gl,8);
-                DrawObject(hero.x, hero.y, 1, 0, hero.idx);
-                DrawObject(maxWidth - 100, bankermove, 5, 0, 14);
-                DrawObject(35, bankermove, 5, 0, 15);
+                handleKeyPress();
+                DrawBackground(gl, 8);
+                DrawObject(plane.x, plane.y, 1, 0, plane.idx);
+                DrawObject(maxWidth - 100, backGroundMove, 5, 0, 14);
+                DrawObject(35, backGroundMove, 5, 0, 15);
 
                 gameTimer = new Timer(1000, e -> {
                     updateTime();
@@ -184,10 +166,10 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 DestroyEnemy();
                 Crash();
                 Fire();
-                if (hero.idx == 1) {
+                if (plane.idx == 1) {
                     timer++;
                     if (timer > 10) {
-                        hero = new Entity();
+                        plane = new Entity();
                         timer = 0;
                     }
                 }
@@ -199,61 +181,60 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 160, 5);
                 textRenderer.endRendering();
 
+                if (playMode == "multi") {
+                    DrawBackground(gl, 8);
+                    DrawObject(plane.x1, plane.y1, 1.0f, 0, plane.idx);
+                    DrawObject(plane2.x2, plane2.y2, 1.0f, 0, plane2.idx2);
+                    DrawObject(maxWidth - 100, backGroundMove, 5, 0, 14);
+                    DrawObject(35, backGroundMove, 5, 0, 15);
+
+                    DrawEnemy();
+                    DestroyEnemy();
+                    Crash();
+                    Fire();
+                    if (plane.idx == 1) {
+                        timer++;
+                        if (timer > 10) {
+                            plane = new Entity();
+                            timer = 0;
+                        }
+                    }
+                    if (plane2.idx2 == 1) {
+                        timer++;
+                        if (timer > 10) {
+                            plane2 = new Entity();
+                            timer = 0;
+                        }
+                    }
+                    DrawObject(50, 600, archeryScale, 0, archeryIndex);
+                    DrawObject(850, 600, pauseScale, 0, pauseIndex);
+
+                    textRenderer.beginRendering(200, 200);
+                    textRenderer.setColor(Color.WHITE);
+                    textRenderer.draw(score + "", 50, 170);
+                    textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
+                    textRenderer.endRendering();
+
+                }
                 gameTimer.start();
-                
-                if(playMode=="multi"){
-                   DrawBackground(gl, 8);
 
-                   DrawObject(hero.x1, hero.y1, 1.0f, 0, hero.idx);
-                   DrawObject(hero2.x2, hero2.y2, 1.0f, 0, hero2.idx2);
-
-                   DrawEnemy();
-                   DestroyEnemy();
-                   Crash();
-                   Fire();
-                   if (hero.idx == 1) {
-                       timer++;
-                       if (timer > 10) {
-                           hero = new Entity();
-                           timer = 0;
-                       }
-                   }
-                    if (hero2.idx2 == 1) {
-                       timer++;
-                       if (timer > 10) {
-                           hero2 = new Entity();
-                           timer = 0;
-                       }
-                   }
-                   DrawObject(50, 600, archeryScale, 0, archeryIndex);
-                   DrawObject(850, 600, pauseScale, 0, pauseIndex);
-
-
-                   textRenderer.beginRendering(200, 200);
-                   textRenderer.setColor(Color.WHITE);
-                   textRenderer.draw(score + "", 50, 170);
-                   textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
-                   textRenderer.endRendering();
-
-                   gameTimer.start();
-               }
-
-                if (pause) {
+                if (isPaused) {
                     DrawObject(450, 350, 7, 0, 11);
                     textRenderer.beginRendering(100, 100);
                     textRenderer.setColor(Color.GRAY);
                     textRenderer.endRendering();
                 }
-                if (score >= 5) {
+                if (score >= winningScore) {
+                    gameClip = "Assets//Music//win.wav";
+                    playOnce(gameClip);
                     page = "Win";
                 }
-                if (lives == 0) {
+                if (lives <= 0) {
                     page = "Lose";
                 }
-
                 break;
             case "Win":
-                DrawBackground(gl,16);
+                DrawBackground(gl, 16);
                 DrawBackground(gl, 16);
 
                 // Display score and highest score on the Win page
@@ -263,10 +244,9 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 textRenderer.draw("" + highScorePlayer1, 115, 70);
                 textRenderer.endRendering();
                 lastGameScore = score;
-
                 break;
             case "Lose":
-                DrawBackground(gl,17);
+                DrawBackground(gl, 17);
                 // Display score and highest score on the Lose page
                 textRenderer.beginRendering(200, 200);
                 textRenderer.setColor(Color.WHITE);
@@ -274,12 +254,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 textRenderer.draw("" + highScorePlayer1, 115, 70);
                 textRenderer.endRendering();
                 lastGameScore = score;
-
                 break;
         }
-       
-        
-
     }
 
     @Override
@@ -293,7 +269,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     }
 
     public void Fire() {
-        bulletSpeed = pause ? 0 : 9;
+        bulletSpeed = isPaused ? 0 : 20;
         for (Bullet bullet : bullets) {
             if (bullet.isFired) {
                 bullet.y += bulletSpeed;
@@ -350,19 +326,18 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     }
 
 
-
     public void CreateEnemy() {
         int x, idx;
         for (int i = 0; i < enemy.length; i++) {
             x = (int) (Math.random() * 500 + 200);
             idx = (int) (Math.random() * enemiesIndex.length);
-            enemy[i] = new Entity(x, 600, enemiesIndex[idx]);
+            enemy[i] = new Entity(x, 650, enemiesIndex[idx]);
         }
     }
 
     void DrawEnemy() {
         delayShowEnemy++;
-        if (delayShowEnemy > 20 && !pause) {
+        if (delayShowEnemy > 20 && !isPaused) {
             if (counter < enemy.length) {
                 counter++;
             }
@@ -370,14 +345,14 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
         }
 
         for (int i = 0; i < counter; i++) {
-            if (pause) {
+            if (isPaused) {
                 enemy[i].speed = 0;
             } else {
-                enemy[i].speed = 7;
+                enemy[i].speed = enemySpeed;
             }
             DrawObject(enemy[i].x, enemy[i].y -= enemy[i].speed, 1, 0, enemy[i].idx);
             if (enemy[i].y < -50) {
-                enemy[i].y = 600;
+                enemy[i].y = 650;
                 enemy[i].x = (int) (Math.random() * 500 + 200);
                 enemy[i].idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
             }
@@ -401,8 +376,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
-                        entity.y = 600;
-                        entity.speed = 7;
+                        entity.y = 650;
+                        entity.speed = enemySpeed;
                     }
                 }
             }
@@ -411,33 +386,12 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
 
     void Crash() {
         for (Entity entity : enemy) {
-           if("single".equals(playMode)){
-            if (Math.abs(hero.x - entity.x) < 75 && Math.abs(hero.y - entity.y) < 50) {
-                System.out.println("Crash");
-                hero.idx = 1;
-                entity.idx = 5;
-                entity.speed = 0;
-                delayDestroy++;
-                if (delayDestroy > 5) {
-                    lives--;
-                    System.out.println("lives :" + lives);
-                    delayDestroy = 0;
-                    entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
-                    entity.x = (int) (Math.random() * 500 + 200);
-                    entity.y = 600;
-                    entity.speed = 7;
-                }
-            }
-           }
-            
-            if("multi".equals(playMode)){
-              if (Math.abs(hero.x1 - entity.x) < 75 && Math.abs(hero.y1 - entity.y) < 50) {
-                System.out.println("Crash");
-                hero.idx = 1;
-                entity.idx = 5;
-                entity.speed = 0;
-                // TODO: condition is always true do we need it or can be wrapped out?
-                if (entity.idx == 5) {
+            if ("single".equals(playMode)) {
+                if (Math.abs(plane.x - entity.x) < 75 && Math.abs(plane.y - entity.y) < 50) {
+                    System.out.println("Crash");
+                    plane.idx = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
                     delayDestroy++;
                     if (delayDestroy > 5) {
                         lives--;
@@ -445,18 +399,18 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
-                        entity.y = 600;
-                        entity.speed = 7;
+                        entity.y = 650;
+                        entity.speed = enemySpeed;
                     }
                 }
-              }
-               if (Math.abs(hero2.x2 - entity.x) < 75 && Math.abs(hero2.y2 - entity.y) < 50) {
-                System.out.println("Crash");
-                hero2.idx2 = 1;
-                entity.idx = 5;
-                entity.speed = 0;
-                // TODO: condition is always true do we need it or can be wrapped out?
-                if (entity.idx == 5) {
+            }
+
+            if ("multi".equals(playMode)) {
+                if (Math.abs(plane.x1 - entity.x) < 75 && Math.abs(plane.y1 - entity.y) < 50) {
+                    System.out.println("Crash");
+                    plane.idx = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
                     delayDestroy++;
                     if (delayDestroy > 5) {
                         lives--;
@@ -464,13 +418,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
-                        entity.y = 600;
+                        entity.y = 650;
                         entity.speed = 7;
                     }
                 }
-              }
+                if (Math.abs(plane2.x2 - entity.x) < 75 && Math.abs(plane2.y2 - entity.y) < 50) {
+                    System.out.println("Crash");
+                    plane2.idx2 = 1;
+                    entity.idx = 5;
+                    entity.speed = 0;
+                    delayDestroy++;
+                    if (delayDestroy > 5) {
+                        lives--;
+                        System.out.println("lives :" + lives);
+                        delayDestroy = 0;
+                        entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
+                        entity.x = (int) (Math.random() * 500 + 200);
+                        entity.y = 650;
+                        entity.speed = enemySpeed;
+                    }
+                }
             }
-    
+
         }
     }
 
@@ -483,111 +452,118 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         keyBits.set(keyCode);
+        if (page.equals("Game")) {
+            if (keyBits.get(KeyEvent.VK_ESCAPE)) {
+                isPaused = !isPaused;
+            }
+        }
+        if (page.equals("Game") || page.equals("Home")
+                || page.equals("win") || page.equals("lose")) {
+            if (keyBits.get(KeyEvent.VK_M)) {
+                clip.stop();
+//                muteToggle();
+            }
+        }
     }
 
     public void handleKeyPress() {
         long currentTime = System.currentTimeMillis();
-        if("single".equals(playMode)){
-        if (hero.idx != 1 && !pause) {
-            if (isKeyPressed(KeyEvent.VK_LEFT)) {
-                if (hero.x >= maxLeftMovement) {
-                    hero.x -= planeMovementSpeed;
-                } else {
-                    hero.idx = 1;
-                }
-            }
-            if (isKeyPressed(KeyEvent.VK_RIGHT)) {
-                if (hero.x <= maxRightMovement) {
-                    hero.x += planeMovementSpeed;
-                } else {
-                    hero.idx = 1;
-                }
-            }
-
-            if (keyBits.get(KeyEvent.VK_UP)) {
-                bankermove -= 2;
-                if (bankermove < 250) {
-                    bankermove = 400;
-                }
-                for (Entity entity : enemy) {
-                    entity.speed = 20;
-                }
-            }
-
-            if (keyBits.get(KeyEvent.VK_ESCAPE)) {
-                pause = !pause;
-            }
-
-            if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
-                bullets.add(new Bullet(hero.x, hero.y));
-                lastFireTime = currentTime;
-            }
-        }
-        }
-        if("multi".equals(playMode)){
-        if (hero.idx != 1 && !pause) {
-             if (isKeyPressed(KeyEvent.VK_LEFT)) {
-                if (hero.x1 >= maxLeftMovement) {
-                    hero.x1 -= planeMovementSpeed;
-                } else {
-                    hero.idx = 1;
-                }
-            }
-            if (isKeyPressed(KeyEvent.VK_RIGHT)) {
-                if (hero.x1 <= maxRightMovement) {
-                    hero.x1 += planeMovementSpeed;
-                } else {
-                    hero.idx = 1;
-                }
-            }
-            if (isKeyPressed(KeyEvent.VK_DOWN)) {
-                if (hero.y1 > maxDownMovement) {
-                    hero.y1 -= planeMovementSpeed;
-                }
-            }
-            if (isKeyPressed(KeyEvent.VK_UP)) {
-                if (hero.y1 < maxUpMovement) {
-                    hero.y1 += planeMovementSpeed;
-                }
-            }
-            if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
-                bullets.add(new Bullet(hero.x1, hero.y1));
-                lastFireTime = currentTime;
-            }
-           
-        }
-            
-            //movement for player two
-             if (hero2.idx2 != 1) {
-                if (isKeyPressed(KeyEvent.VK_A)) {
-                    if (hero2.x2 >= maxLeftMovement) {
-                        hero2.x2 -= planeMovementSpeed;
+        long fireDelay = 350;
+        if ("single".equals(playMode)) {
+            if (plane.idx != 1 && !isPaused) {
+                if (isKeyPressed(KeyEvent.VK_LEFT)) {
+                    if (plane.x >= maxLeftMovement) {
+                        plane.x -= planeMovementSpeed;
                     } else {
-                        hero2.idx2 = 1;
+                        plane.idx = 1;
+                        lives--;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_RIGHT)) {
+                    if (plane.x <= maxRightMovement) {
+                        plane.x += planeMovementSpeed;
+                    } else {
+                        plane.idx = 1;
+                        lives--;
+                    }
+                }
+
+                if (keyBits.get(KeyEvent.VK_UP)) {
+                    backGroundMove -= 2;
+                    if (backGroundMove < 250) {
+                        backGroundMove = 400;
+                    }
+                    for (Entity entity : enemy) {
+                        entity.speed = 20;
+                    }
+                }
+
+                if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
+                    bullets.add(new Bullet(plane.x, plane.y));
+                    gameClip = "Assets//Music//fire.wav";
+                    playOnce(gameClip);
+                    lastFireTime = currentTime;
+                }
+            }
+        }
+        if ("multi".equals(playMode)) {
+            if (plane.idx != 1 && !isPaused) {
+                if (isKeyPressed(KeyEvent.VK_LEFT)) {
+                    if (plane.x1 >= maxLeftMovement) {
+                        plane.x1 -= planeMovementSpeed;
+                    } else {
+                        plane.idx = 1;
+                        lives--;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_RIGHT)) {
+                    if (plane.x1 <= maxRightMovement) {
+                        plane.x1 += planeMovementSpeed;
+                    } else {
+                        plane.idx = 1;
+                        lives--;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_UP)) {
+                    backGroundMove -= 2;
+                    if (backGroundMove < 250) {
+                        backGroundMove = 400;
+                    }
+                }
+                if (isKeyPressed(KeyEvent.VK_SPACE) && (currentTime - lastFireTime >= fireDelay)) {
+                    bullets.add(new Bullet(plane.x1, plane.y1));
+                    gameClip = "Assets//Music//fire.wav";
+                    playOnce(gameClip);
+                    lastFireTime = currentTime;
+                }
+
+            }
+
+            //movement for player two
+            if (plane2.idx2 != 1) {
+                if (isKeyPressed(KeyEvent.VK_A)) {
+                    if (plane2.x2 >= maxLeftMovement) {
+                        plane2.x2 -= planeMovementSpeed;
+                    } else {
+                        plane2.idx2 = 1;
+                        lives--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_D)) {
-                    if (hero2.x2 <= maxRightMovement) {
-                        hero2.x2 += planeMovementSpeed;
+                    if (plane2.x2 <= maxRightMovement) {
+                        plane2.x2 += planeMovementSpeed;
                     } else {
-                        hero2.idx2 = 1;
-                    }
-                }
-                if (isKeyPressed(KeyEvent.VK_S)) {
-                    if (hero2.y2 > maxDownMovement) {
-                        hero2.y2 -= planeMovementSpeed;
-                    }
-                }
-                if (isKeyPressed(KeyEvent.VK_W)) {
-                    if (hero2.y2 < maxUpMovement) {
-                        hero2.y2 += planeMovementSpeed;
+                        plane2.idx2 = 1;
+                        lives--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_C) && (currentTime - lastFireTime >= fireDelay)) {
-                    bullets.add(new Bullet(hero2.x2, hero2.y2));
+                    bullets.add(new Bullet(plane2.x2, plane2.y2));
+                    gameClip = "Assets//Music//fire.wav";
+                    playOnce(gameClip);
                     lastFireTime = currentTime;
                 }
-             }
+            }
         }
     }
 
@@ -599,30 +575,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     public void keyReleased(KeyEvent e) {
         keyBits.clear(e.getKeyCode());
         for (Entity entity : enemy) {
-            entity.speed = 7;
+            entity.speed = enemySpeed;
         }
     }
-
-
 
     @Override
     public void mouseClicked(MouseEvent e) {
         double x = e.getX();
         double y = e.getY();
-
-
-//        System.out.println(x + " " + y);
+//      System.out.println(x + " " + y);
         Component c = e.getComponent();
         double width = c.getWidth();
         double height = c.getHeight();
         System.out.println(width + " " + height);
-//get percent of GLCanvas instead of
-//points and then converting it to our
-//'100' based coordinate system.
+
+//      get percent of GLCanvas instead of
+//      points and then converting it to our
+//      '100' based coordinate system.
 
         xPosition = (int) ((x / width) * 100);
         yPosition = ((int) ((y / height) * 100));
-//reversing direction of y axis
+
+//      reversing direction of y-axis
         yPosition = 100 - yPosition;
 
         System.out.println(xPosition + " " + yPosition);
@@ -643,8 +617,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 }
                 if (xPosition >= 87 && xPosition <= 94 && yPosition >= 85 && yPosition <= 95) {
                     System.out.println("Mute clicked");
-                    clip.stop();
-                    sound = !sound;
+                    muteToggle();
                 }
 
                 if (xPosition >= 34 && xPosition <= 65 && yPosition >= 37 && yPosition <= 45) {
@@ -666,25 +639,28 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 if (xPosition <= 65 && xPosition >= 35 && yPosition <= 65 && yPosition >= 55) {
                     page = "Game";
                     gameLevel = "easy";
+                    EasyLevel();
                 }
                 if (xPosition <= 65 && xPosition >= 35 && yPosition <= 50 && yPosition >= 45) {
                     page = "Game";
                     gameLevel = "medium";
+                    MediumLevel();
                 }
-                if (xPosition <= 65 && xPosition >= 35 && yPosition <= 30 && yPosition >= 40) {
+                if (xPosition >= 34 && xPosition <= 65 && yPosition >= 28 && yPosition <= 40) {
                     page = "Game";
                     gameLevel = "hard";
+                    HardLevel();
                 }
                 break;
 
             case "Game":
                 if (xPosition >= 86 && xPosition <= 93 && yPosition >= 88 && yPosition <= 95) {
-                    pause = true;
+                    isPaused = true;
                     System.out.println("pause");
                 }
-                if (pause) {
+                if (isPaused) {
                     if (xPosition >= 31 && xPosition <= 68 && yPosition >= 57 && yPosition <= 64) {
-                        pause = false;
+                        isPaused = false;
                         System.out.println("resume");
                     }
                     if (xPosition >= 31 && xPosition <= 68 && yPosition >= 44 && yPosition <= 51) {
@@ -699,7 +675,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                 }
                 break;
 
-            case "Lose" :
+            case "Lose":
                 if (xPosition >= 27 && xPosition <= 48 && yPosition >= 19 && yPosition <= 25) {
                     Default();
                     page = "Home";
@@ -711,19 +687,34 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
                     System.out.println("Game");
                 }
                 break;
-            case "Win" :
+            case "Win":
                 if (xPosition >= 27 && xPosition <= 48 && yPosition >= 19 && yPosition <= 25) {
                     Default();
                     page = "Home";
                     System.out.println("Home");
                 }
                 if (xPosition >= 51 && xPosition <= 71 && yPosition >= 19 && yPosition <= 25) {
-                    Default();
                     page = "Game";
-                    System.out.println("medium");
+                    System.out.println(gameLevel);
+                    switch (gameLevel) {
+                        case "easy":
+                            EasyLevel();
+                            break;
+                        case "medium":
+                            MediumLevel();
+                            break;
+                        case "hard":
+                            HardLevel();
+                            break;
+                        case "done":
+                            page = "Home";
+                            break;
+                    }
+                    System.out.println(gameLevel);
                 }
         }
     }
+
     private void saveHighScores() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(highScoreFilePath))) {
             writer.println(highScorePlayer1);
@@ -741,36 +732,61 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
             e.printStackTrace();
         }
     }
-   public void Default() {
+
+    public void Default() {
         lives = 3;
         score = 0;
-        hero.x = 450;
-        hero.y = 50;
+        plane.x = 450;
+        plane.y = 50;
         CreateEnemy();
         elapsedSeconds = 0;
         elapsedMinutes = 0;
-        pause = false;
+        updateTime();
+        isPaused = false;
         counter = 0;
         bullets.clear();
 
-       if (lastGameScore > highScorePlayer1) {
-           highScorePlayer1 = lastGameScore;
-       }
+        if (lastGameScore > highScorePlayer1) {
+            highScorePlayer1 = lastGameScore;
+        }
 
-       // Save the scores to the file
-       saveHighScores();
+        // Save the scores to the file
+        saveHighScores();
 
-   }
+    }
+
+    public void EasyLevel() {
+        Default();
+        gameLevel = "medium";
+        winningScore = 100;
+    }
+
+    public void MediumLevel() {
+        Default();
+        gameLevel = "hard";
+        winningScore = 250;
+        numberOfEnemies += 5;
+        planeMovementSpeed -= 1;
+        enemySpeed = 14;
+    }
+
+    public void HardLevel() {
+        Default();
+        gameLevel = "done";
+        numberOfEnemies += 10;
+        planeMovementSpeed -= 1;
+        winningScore = 350;
+        enemySpeed = 16;
+    }
 
 
-        @Override
+    @Override
     public void mousePressed(MouseEvent e) {
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
     }
-
 
 
     @Override
@@ -782,12 +798,64 @@ public class RiverRaidListener extends AnimListener implements KeyListener,Mouse
     }
 
     private void updateTime() {
-        if (!pause) {
+        if (!isPaused) {
             elapsedSeconds++;
             if (elapsedSeconds == 60) {
                 elapsedSeconds = 0;
                 elapsedMinutes++;
             }
+        }
+    }
+
+    public void playClip(String path, boolean isLoop) {
+        try {
+            audioStream = AudioSystem.getAudioInputStream(new File(path));
+            clip = AudioSystem.getClip();
+            clip.open(audioStream);
+            if (isLoop) {
+                clip.loop(Clip.LOOP_CONTINUOUSLY);
+            } else {
+                clip.start();
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    public void playOnce(String path) {
+        try {
+            audioStream = AudioSystem.getAudioInputStream(new File(path));
+            clip = AudioSystem.getClip();
+            clip.open(audioStream);
+            clip.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP) {
+                    event.getLine().close(); // Close the clip when it stops playing
+                }
+            });
+            clip.start();
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    public void playBackGroundMusic(){
+        clipPath = "Assets//Music//awaken.wav";
+        playClip(clipPath, false);
+    }
+    public void muteToggle() {
+        if (clip != null) {
+            if (isSoundPlaying) {
+                clipMicrosecondPosition = clip.getMicrosecondPosition();
+                clip.stop();
+            } else {
+                try {
+                    clip.setMicrosecondPosition(clipMicrosecondPosition);
+                    clip.start();
+                } catch (Exception ex) {
+                    System.out.println(ex.getMessage());
+                }
+            }
+            isSoundPlaying = !isSoundPlaying;
         }
     }
 }
