@@ -37,8 +37,6 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     boolean isPaused = false;
     final private int maxWidth = 1000;
     final private int maxHeight = 700;
-    int maxUpMovement = 600;
-    int maxDownMovement = 20;
     int maxRightMovement = 730;
     int maxLeftMovement = 215;
     int planeMovementSpeed = 8;
@@ -46,7 +44,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     private int highScorePlayer2 = 0;
     private final String highScoreFilePath = "highscores.txt";
     private int lastGameScore = 0;
-    int timer, delayShowEnemy, counter, score, delayDestroy, lives = 3, backGroundMove = 400, bulletSpeed;
+    int timer, delayShowEnemy, counter, score, delayDestroy, livesPlayer1 = 3, livesPlayer2 = 3, backGroundMove = 400, bulletSpeed;
     private long lastFireTime = 0;
     private long clipMicrosecondPosition;
     Entity plane = new Entity();
@@ -74,6 +72,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     int winningScore = 100;
     String clipPath;
     String gameClip;
+
     private GLCanvas glc;
 
     public void setGLCanvas(GLCanvas glc) {
@@ -137,9 +136,6 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                 if (soundIndex == 12) {
                     clip.loop(Clip.LOOP_CONTINUOUSLY);
                 }
-                if (soundIndex == 13) {
-                    clip.stop();
-                }
                 DrawBackground(gl, 9);
                 DrawObject(850, 600, 1.0f, 0, soundIndex);
                 textRenderer.beginRendering(100, 100);
@@ -177,14 +173,21 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                 DrawObject(850, 600, pauseScale, 0, pauseIndex);
                 textRenderer.beginRendering(200, 200);
                 textRenderer.setColor(Color.WHITE);
-                textRenderer.draw(score + "", 50, 170);
+                textRenderer.draw(score + "", 40, 170);
+                textRenderer.draw("lives " + livesPlayer1, 100, 170);
                 textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 160, 5);
                 textRenderer.endRendering();
-
+                if (livesPlayer1 <= 0) {
+                    page = "Lose";
+                }
                 if (playMode == "multi") {
                     DrawBackground(gl, 8);
-                    DrawObject(plane.x1, plane.y1, 1.0f, 0, plane.idx);
-                    DrawObject(plane2.x2, plane2.y2, 1.0f, 0, plane2.idx2);
+                    if (livesPlayer1 > 0) {
+                        DrawObject(plane.x1, plane.y1, 1.0f, 0, plane.idx);
+                    }
+                    if (livesPlayer2 > 0) {
+                        DrawObject(plane2.x2, plane2.y2, 1.0f, 0, plane2.idx2);
+                    }
                     DrawObject(maxWidth - 100, backGroundMove, 5, 0, 14);
                     DrawObject(35, backGroundMove, 5, 0, 15);
 
@@ -211,7 +214,10 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
 
                     textRenderer.beginRendering(200, 200);
                     textRenderer.setColor(Color.WHITE);
-                    textRenderer.draw(score + "", 50, 170);
+                    textRenderer.draw(score + "", 40, 170);
+                    textRenderer.draw("lives1 " + livesPlayer1, 60, 170);
+                    textRenderer.draw("lives2 " + livesPlayer2, 120, 170);
+
                     textRenderer.draw(String.format("%02d:%02d", elapsedMinutes, elapsedSeconds), 60, 5);
                     textRenderer.endRendering();
 
@@ -229,12 +235,11 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                     playOnce(gameClip);
                     page = "Win";
                 }
-                if (lives <= 0) {
+                if (livesPlayer1 <= 0 && livesPlayer2 <= 0) {
                     page = "Lose";
                 }
                 break;
             case "Win":
-                DrawBackground(gl, 16);
                 DrawBackground(gl, 16);
 
                 // Display score and highest score on the Win page
@@ -370,6 +375,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                     score += entity.score;
                     System.out.println("score :" + score);
                 }
+                // to hide the damage enemy
                 if (entity.idx == 5) {
                     delayDestroy++;
                     if (delayDestroy > 5) {
@@ -394,8 +400,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                     entity.speed = 0;
                     delayDestroy++;
                     if (delayDestroy > 5) {
-                        lives--;
-                        System.out.println("lives :" + lives);
+                        livesPlayer1--;
+                        System.out.println("lives :" + livesPlayer1);
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
@@ -406,15 +412,15 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
             }
 
             if ("multi".equals(playMode)) {
-                if (Math.abs(plane.x1 - entity.x) < 75 && Math.abs(plane.y1 - entity.y) < 50) {
+                if (Math.abs(plane.x1 - entity.x) < 75 && Math.abs(plane.y1 - entity.y) < 50 && livesPlayer1 > 0) {
                     System.out.println("Crash");
                     plane.idx = 1;
                     entity.idx = 5;
                     entity.speed = 0;
                     delayDestroy++;
                     if (delayDestroy > 5) {
-                        lives--;
-                        System.out.println("lives :" + lives);
+                        livesPlayer1--;
+                        System.out.println("lives1 :" + livesPlayer1);
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
@@ -422,15 +428,18 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         entity.speed = 7;
                     }
                 }
-                if (Math.abs(plane2.x2 - entity.x) < 75 && Math.abs(plane2.y2 - entity.y) < 50) {
+                if (Math.abs(plane2.x2 - entity.x) < 75 && Math.abs(plane2.y2 - entity.y) < 50 && livesPlayer2 > 0) {
                     System.out.println("Crash");
                     plane2.idx2 = 1;
                     entity.idx = 5;
                     entity.speed = 0;
                     delayDestroy++;
                     if (delayDestroy > 5) {
-                        lives--;
-                        System.out.println("lives :" + lives);
+                        livesPlayer2--;
+                        if(livesPlayer2 <= 0){
+                            plane2.y = 1000;
+                        }
+                        System.out.println("lives2 :" + livesPlayer2);
                         delayDestroy = 0;
                         entity.idx = enemiesIndex[(int) (Math.random() * enemiesIndex.length)];
                         entity.x = (int) (Math.random() * 500 + 200);
@@ -460,8 +469,9 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
         if (page.equals("Game") || page.equals("Home")
                 || page.equals("win") || page.equals("lose")) {
             if (keyBits.get(KeyEvent.VK_M)) {
-                clip.stop();
-//                muteToggle();
+//                clip.stop();
+                muteToggle();
+                isSoundPlaying = !isSoundPlaying;
             }
         }
     }
@@ -476,7 +486,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane.x -= planeMovementSpeed;
                     } else {
                         plane.idx = 1;
-                        lives--;
+                        livesPlayer1--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_RIGHT)) {
@@ -484,7 +494,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane.x += planeMovementSpeed;
                     } else {
                         plane.idx = 1;
-                        lives--;
+                        livesPlayer1--;
                     }
                 }
 
@@ -513,7 +523,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane.x1 -= planeMovementSpeed;
                     } else {
                         plane.idx = 1;
-                        lives--;
+                        livesPlayer1--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_RIGHT)) {
@@ -521,7 +531,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane.x1 += planeMovementSpeed;
                     } else {
                         plane.idx = 1;
-                        lives--;
+                        livesPlayer1--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_UP)) {
@@ -546,7 +556,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane2.x2 -= planeMovementSpeed;
                     } else {
                         plane2.idx2 = 1;
-                        lives--;
+                        livesPlayer2--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_D)) {
@@ -554,7 +564,7 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                         plane2.x2 += planeMovementSpeed;
                     } else {
                         plane2.idx2 = 1;
-                        lives--;
+                        livesPlayer2--;
                     }
                 }
                 if (isKeyPressed(KeyEvent.VK_C) && (currentTime - lastFireTime >= fireDelay)) {
@@ -617,7 +627,9 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                 }
                 if (xPosition >= 87 && xPosition <= 94 && yPosition >= 85 && yPosition <= 95) {
                     System.out.println("Mute clicked");
-                    muteToggle();
+                    isSoundPlaying = !isSoundPlaying;
+//                    muteToggle();
+                    clip.stop();
                 }
 
                 if (xPosition >= 34 && xPosition <= 65 && yPosition >= 37 && yPosition <= 45) {
@@ -661,6 +673,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
                 if (isPaused) {
                     if (xPosition >= 31 && xPosition <= 68 && yPosition >= 57 && yPosition <= 64) {
                         isPaused = false;
+
+
                         System.out.println("resume");
                     }
                     if (xPosition >= 31 && xPosition <= 68 && yPosition >= 44 && yPosition <= 51) {
@@ -734,7 +748,8 @@ public class RiverRaidListener extends AnimListener implements KeyListener, Mous
     }
 
     public void Default() {
-        lives = 3;
+        livesPlayer1 = 3;
+        livesPlayer2 = 3;
         score = 0;
         plane.x = 450;
         plane.y = 50;
