@@ -8,6 +8,6 @@ public class Bullet {
     public Bullet(int x, int y) {
         this.x = initX = x;
         this.y = initY = y;
-        this.isFired = true;
+        this.isFired = false;
     }
 }

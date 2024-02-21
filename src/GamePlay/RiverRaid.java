@@ -21,7 +21,7 @@ public class RiverRaid extends JFrame {
         glcanvas.addKeyListener(listener);
         
         add(glcanvas, BorderLayout.CENTER);
-        Animator animator = new FPSAnimator(40);
+        Animator animator = new FPSAnimator(30);
         animator.add(glcanvas);
         animator.start();
         glcanvas.addMouseListener(listener);
